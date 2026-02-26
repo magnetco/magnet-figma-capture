@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+      color: var(--figma-color-text, #333);
+      background: var(--figma-color-bg, #fff);
+      padding: 16px;
+    }
+    h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    p.subtitle {
+      color: var(--figma-color-text-secondary, #888);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--figma-color-border, #e5e5e5);
+      margin-bottom: 16px;
+    }
+    .tab {
+      padding: 8px 14px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--figma-color-text-secondary, #888);
+      font-weight: 500;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .tab.active {
+      color: var(--figma-color-text-brand, #0d99ff);
+      border-bottom-color: var(--figma-color-text-brand, #0d99ff);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Form elements ── */
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: var(--figma-color-text-secondary, #666);
+    }
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--figma-color-border, #ddd);
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      resize: vertical;
+      background: var(--figma-color-bg-secondary, #fafafa);
+      color: var(--figma-color-text, #333);
+      outline: none;
+    }
+    textarea:focus, input:focus {
+      border-color: var(--figma-color-border-brand, #0d99ff);
+      box-shadow: 0 0 0 1px var(--figma-color-border-brand, #0d99ff);
+    }
+    textarea { min-height: 280px; }
+
+    /* ── File upload ── */
+    .file-drop {
+      border: 2px dashed var(--figma-color-border, #ddd);
+      border-radius: 8px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .file-drop:hover, .file-drop.dragover {
+      border-color: var(--figma-color-border-brand, #0d99ff);
+      background: var(--figma-color-bg-brand-tertiary, #f0f8ff);
+    }
+    .file-drop p { margin: 4px 0; }
+    .file-drop .icon { font-size: 24px; margin-bottom: 4px; }
+    .file-name {
+      font-weight: 600;
+      color: var(--figma-color-text-brand, #0d99ff);
+      word-break: break-all;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-full { width: 100%; margin-top: 12px; display: block; }
+    .btn-primary {
+      background: var(--figma-color-bg-brand, #0d99ff);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--figma-color-bg-secondary, #f0f0f0);
+      color: var(--figma-color-text, #333);
+    }
+    .btn-secondary:hover { opacity: 0.85; }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-warning {
+      background: #fff3cd;
+      color: #7a5c00;
+      border: 1px solid #f0c040;
+    }
+    .btn-warning:hover { background: #ffe9a0; }
+    .btn-warning:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Status ── */
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      display: none;
+    }
+    .status.visible { display: block; }
+    .status.info { background: var(--figma-color-bg-brand-tertiary, #e8f4ff); color: var(--figma-color-text-brand, #0d66cc); }
+    .status.success { background: #e8f8e8; color: #1a7a1a; }
+    .status.error { background: #fde8e8; color: #c53030; }
+    .status.warn { background: #fff8e1; color: #7a5700; }
+
+    /* ── Stats grid ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .stat {
+      background: var(--figma-color-bg-secondary, #f5f5f5);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat .value { font-size: 18px; font-weight: 700; color: var(--figma-color-text-brand, #0d99ff); }
+    .stat .label { font-size: 10px; color: var(--figma-color-text-secondary, #888); margin-top: 2px; }
+
+    /* ── Hint box ── */
+    .hint {
+      background: var(--figma-color-bg-secondary, #f5f5f5);
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--figma-color-text-secondary, #666);
+    }
+    .hint code {
+      background: var(--figma-color-bg-tertiary, #e8e8e8);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: 'SF Mono', monospace;
+      font-size: 10px;
+    }
+
+    /* ── Font Report ── */
+    #fontReportSection { margin-top: 0; }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--figma-color-text, #333);
+    }
+    .font-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .font-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: var(--figma-color-bg-secondary, #f5f5f5);
+      font-size: 11px;
+    }
+    .font-row.available { border-left: 3px solid #22c55e; }
+    .font-row.missing   { border-left: 3px solid #f59e0b; }
+    .font-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .badge-ok      { background: #dcfce7; color: #166534; }
+    .badge-missing { background: #fef3c7; color: #92400e; }
+    .font-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .font-fallback { color: var(--figma-color-text-secondary, #888); font-size: 10px; flex-shrink: 0; }
+    .font-styles  { color: var(--figma-color-text-secondary, #888); font-size: 10px; margin-top: 1px; }
+
+    /* ── Font files list ── */
+    .font-file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 10px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .font-file-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      background: var(--figma-color-bg-secondary, #f5f5f5);
+      font-size: 11px;
+    }
+    .font-file-row.has-data  { border-left: 3px solid #0d99ff; }
+    .font-file-row.no-data   { border-left: 3px solid #e5e5e5; opacity: 0.6; }
+    .ff-name { font-weight: 600; flex: 1; }
+    .ff-meta { color: var(--figma-color-text-secondary, #888); font-size: 10px; }
+    .ff-size { color: var(--figma-color-text-secondary, #888); font-size: 10px; flex-shrink: 0; }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: var(--figma-color-text-secondary, #aaa);
+      font-size: 11px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--figma-color-border, #eee);
+      margin: 14px 0;
+    }
+    .row-actions { display: flex; gap: 6px; margin-top: 10px; }
+    .row-actions .btn { flex: 1; }
+  </style>
+</head>
+<body>
+  <h2>HTML to Figma Layers</h2>
+  <p class="subtitle">Import extracted DOM data to create native editable Figma layers with auto layout and variables.</p>
+
+  <!-- ── Tabs ── -->
+  <div class="tabs">
+    <div class="tab active" data-tab="file">Upload JSON</div>
+    <div class="tab" data-tab="paste">Paste JSON</div>
+    <div class="tab" data-tab="fonts">Fonts</div>
+  </div>
+
+  <!-- ── Tab: File Upload ── -->
+  <div id="tab-file" class="tab-content active">
+    <div class="file-drop" id="fileDrop">
+      <div class="icon">&#128196;</div>
+      <p><strong>Drop JSON file here</strong></p>
+      <p>or click to browse</p>
+    </div>
+    <input type="file" id="fileInput" accept=".json" style="display:none">
+    <div id="fileName" style="display:none"></div>
+  </div>
+
+  <!-- ── Tab: Paste JSON ── -->
+  <div id="tab-paste" class="tab-content">
+    <label>Extracted JSON data</label>
+    <textarea id="jsonInput" placeholder='Paste the JSON output from extract.py here...'></textarea>
+  </div>
+
+  <!-- ── Tab: Fonts ── -->
+  <div id="tab-fonts" class="tab-content">
+    <div id="fontReportSection">
+      <div class="empty-state" id="fontEmptyState">
+        Load a JSON file to see the font report.
+      </div>
+
+      <!-- Font availability report (shown after import starts) -->
+      <div id="fontAvailability" style="display:none">
+        <p class="section-title">Font Availability</p>
+        <div class="font-list" id="fontAvailabilityList"></div>
+      </div>
+
+      <!-- Divider -->
+      <hr class="divider" id="fontDivider" style="display:none">
+
+      <!-- Embedded font files -->
+      <div id="fontFilesSection" style="display:none">
+        <p class="section-title">Embedded Font Files</p>
+        <p style="font-size:11px; color:var(--figma-color-text-secondary,#888); margin-bottom:8px; line-height:1.5;">
+          These fonts were downloaded by the extractor and embedded in the JSON.
+          Install missing fonts via your OS or <a href="https://www.figma.com/downloads/" target="_blank" style="color:var(--figma-color-text-brand,#0d99ff);">Figma Font Helper</a>.
+        </p>
+        <div class="font-file-list" id="fontFileList"></div>
+        <div class="row-actions">
+          <button class="btn btn-warning" id="downloadMissingBtn" disabled>
+            &#8659; Download Missing Fonts
+          </button>
+          <button class="btn btn-secondary" id="downloadAllFontsBtn" disabled>
+            &#8659; Download All Fonts
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Import Button ── -->
+  <button class="btn btn-primary btn-full" id="importBtn" disabled>Import to Figma</button>
+
+  <!-- ── Status ── -->
+  <div class="status" id="status"></div>
+
+  <!-- ── Hint ── -->
+  <div class="hint" id="mainHint">
+    <strong>How to use:</strong><br>
+    1. Run the extractor: <code>python extract.py https://example.com</code><br>
+    2. Upload or paste the resulting JSON file here<br>
+    3. Check the Fonts tab to review &amp; install missing fonts<br>
+    4. Click "Import to Figma" to create editable layers
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────
+    const tabs        = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const importBtn   = document.getElementById('importBtn');
+    const status      = document.getElementById('status');
+    const fileInput   = document.getElementById('fileInput');
+    const fileDrop    = document.getElementById('fileDrop');
+    const jsonInput   = document.getElementById('jsonInput');
+
+    let loadedJSON = null;
+    let parsedData = null;   // full parsed object (to access fontFiles)
+
+    // ── Tab Switching ──────────────────────────────────────
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ── File Upload ────────────────────────────────────────
+    fileDrop.addEventListener('click', () => fileInput.click());
+    fileDrop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileDrop.classList.add('dragover');
+    });
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+    fileDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileDrop.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          loadedJSON = e.target.result;
+          parsedData = JSON.parse(loadedJSON);
+          fileDrop.innerHTML =
+            '<div class="icon">&#9989;</div>' +
+            '<p class="file-name">' + escapeHtml(file.name) + '</p>' +
+            '<p>Click to change file</p>';
+          importBtn.disabled = false;
+          showStatus('info', 'JSON loaded. Review the Fonts tab, then click "Import to Figma".');
+          // Pre-populate fonts tab from file data
+          previewFontFiles(parsedData.fontFiles || []);
+        } catch (err) {
+          showStatus('error', 'Invalid JSON file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ── Paste JSON ────────────────────────────────────────
+    jsonInput.addEventListener('input', () => {
+      const val = jsonInput.value.trim();
+      if (val) {
+        try {
+          parsedData = JSON.parse(val);
+          loadedJSON = val;
+          importBtn.disabled = false;
+          showStatus('info', 'JSON validated. Click "Import to Figma" to start.');
+          previewFontFiles(parsedData.fontFiles || []);
+        } catch (e) {
+          importBtn.disabled = true;
+          showStatus('error', 'Invalid JSON: ' + e.message);
+        }
+      } else {
+        loadedJSON = null;
+        parsedData = null;
+        importBtn.disabled = true;
+      }
+    });
+
+    // ── Font Files Preview ────────────────────────────────
+    function previewFontFiles(fontFiles) {
+      const section  = document.getElementById('fontFilesSection');
+      const listEl   = document.getElementById('fontFileList');
+      const emptyEl  = document.getElementById('fontEmptyState');
+      const divider  = document.getElementById('fontDivider');
+      const dlMissBtn = document.getElementById('downloadMissingBtn');
+      const dlAllBtn  = document.getElementById('downloadAllFontsBtn');
+
+      emptyEl.style.display = 'none';
+      divider.style.display = '';
+      section.style.display = '';
+      listEl.innerHTML = '';
+
+      if (!fontFiles || fontFiles.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No fonts were embedded in this JSON.<br>Run extract.py without --no-fonts to embed fonts.</div>';
+        dlMissBtn.disabled = true;
+        dlAllBtn.disabled  = true;
+        return;
+      }
+
+      fontFiles.forEach(f => {
+        const hasData = !!f.data;
+        const row = document.createElement('div');
+        row.className = 'font-file-row ' + (hasData ? 'has-data' : 'no-data');
+        const sizeKB = f.data ? Math.round(f.data.length * 0.75 / 1024) : 0;
+        row.innerHTML =
+          '<span class="ff-name">' + escapeHtml(f.family) + '</span>' +
+          '<span class="ff-meta">' + f.weight + ' ' + f.style + ' · ' + f.format + '</span>' +
+          (hasData
+            ? '<span class="ff-size">' + sizeKB + ' KB</span>'
+            : '<span class="ff-size" style="color:#f59e0b;">failed</span>');
+        listEl.appendChild(row);
+      });
+
+      const hasAny     = fontFiles.some(f => f.data);
+      dlAllBtn.disabled  = !hasAny;
+      dlMissBtn.disabled = !hasAny;  // enabled; plugin will filter to missing
+    }
+
+    // ── Download Font Files ──────────────────────────────
+    document.getElementById('downloadAllFontsBtn').addEventListener('click', () => {
+      downloadFontZip(parsedData && parsedData.fontFiles ? parsedData.fontFiles : [], false);
+    });
+
+    document.getElementById('downloadMissingBtn').addEventListener('click', () => {
+      // Filter to only fonts that were missing according to last import report
+      const fonts = parsedData && parsedData.fontFiles ? parsedData.fontFiles : [];
+      downloadFontZip(fonts, true /* missingOnly */);
+    });
+
+    function downloadFontZip(fontFiles, missingOnly) {
+      const toDownload = fontFiles.filter(f => f.data && (!missingOnly || f._isMissing));
+      if (toDownload.length === 0) {
+        showStatus('warn', missingOnly
+          ? 'No missing fonts to download. All fonts appear to be available in Figma.'
+          : 'No font data available to download.');
+        return;
+      }
+      // Use JSZip loaded from CDN (or fallback: download individually)
+      if (typeof JSZip === 'undefined') {
+        // Fallback: download each font individually
+        toDownload.forEach(f => {
+          const ext = f.format === 'truetype' ? 'ttf' : f.format === 'woff2' ? 'woff2' : f.format === 'woff' ? 'woff' : 'ttf';
+          const filename = (f.family + '-' + f.weight + '-' + f.style + '.' + ext).replace(/\s+/g, '-');
+          const bytes = base64ToBytes(f.data);
+          const blob  = new Blob([bytes], { type: 'font/' + f.format });
+          triggerDownload(blob, filename);
+        });
+        showStatus('success', `Downloading ${toDownload.length} font file(s) individually.`);
+      } else {
+        const zip = new JSZip();
+        toDownload.forEach(f => {
+          const ext = f.format === 'truetype' ? 'ttf' : f.format === 'woff2' ? 'woff2' : f.format === 'woff' ? 'woff' : 'ttf';
+          const filename = (f.family + '-' + f.weight + '-' + f.style + '.' + ext).replace(/\s+/g, '-');
+          zip.file(filename, f.data, { base64: true });
+        });
+        zip.generateAsync({ type: 'blob' }).then(blob => {
+          triggerDownload(blob, 'missing-fonts.zip');
+          showStatus('success', `Downloading ${toDownload.length} font(s) as ZIP.`);
+        });
+      }
+    }
+
+    function base64ToBytes(b64) {
+      const raw = atob(b64);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // ── Import ────────────────────────────────────────────
+    importBtn.addEventListener('click', () => {
+      if (!loadedJSON) return;
+      importBtn.disabled = true;
+      importBtn.textContent = 'Importing…';
+      showStatus('info', 'Starting import…');
+      parent.postMessage({ pluginMessage: { type: 'import', json: loadedJSON } }, '*');
+    });
+
+    // ── Messages from plugin ──────────────────────────────
+    onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'status') {
+        showStatus('info', msg.text);
+
+      } else if (msg.type === 'fontReport') {
+        renderFontAvailabilityReport(msg.report, msg.fontFiles || []);
+
+      } else if (msg.type === 'done') {
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import to Figma';
+        const s = msg.stats;
+
+        let summary = `Done! Created ${s.frames} frames, ${s.texts} text layers, ${s.images} images. ` +
+          `${s.colors} color variables, ${s.textStyles} text styles.`;
+
+        // Attach missing-font info to fontFiles so download buttons know what's missing
+        if (msg.missingFonts && msg.missingFonts.length > 0 && parsedData && parsedData.fontFiles) {
+          const missingSet = new Set(msg.missingFonts.map(m => m.family.toLowerCase()));
+          parsedData.fontFiles.forEach(f => {
+            f._isMissing = missingSet.has(f.family.toLowerCase());
+          });
+          summary += ` ⚠ ${msg.missingFonts.length} font(s) were substituted — check the Fonts tab.`;
+          showStatus('warn', summary);
+        } else {
+          showStatus('success', summary);
+        }
+
+        // Show full stats
+        renderStats(s);
+
+      } else if (msg.type === 'error') {
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import to Figma';
+        showStatus('error', 'Error: ' + msg.text);
+      }
+    };
+
+    // ── Font Availability Rendering ───────────────────────
+    function renderFontAvailabilityReport(report, fontFiles) {
+      const section = document.getElementById('fontAvailability');
+      const listEl  = document.getElementById('fontAvailabilityList');
+      const emptyEl = document.getElementById('fontEmptyState');
+      const divider = document.getElementById('fontDivider');
+
+      emptyEl.style.display = 'none';
+      section.style.display = '';
+      divider.style.display = '';
+      listEl.innerHTML = '';
+
+      if (!report || report.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No fonts detected in extracted content.</div>';
+        return;
+      }
+
+      report.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'font-row ' + (entry.available ? 'available' : 'missing');
+        let inner = '';
+        inner += '<span class="font-badge ' + (entry.available ? 'badge-ok' : 'badge-missing') + '">' +
+          (entry.available ? 'Available' : 'Missing') + '</span>';
+        inner += '<div style="flex:1;min-width:0">' +
+          '<div class="font-name">' + escapeHtml(entry.family) + '</div>';
+        if (entry.available && entry.availableStyles && entry.availableStyles.length > 0) {
+          inner += '<div class="font-styles">' + entry.availableStyles.slice(0, 5).join(', ') +
+            (entry.availableStyles.length > 5 ? ' +' + (entry.availableStyles.length - 5) + ' more' : '') + '</div>';
+        }
+        if (!entry.available && entry.suggestedFallback) {
+          inner += '<div class="font-fallback">→ using ' + escapeHtml(entry.suggestedFallback) + '</div>';
+        }
+        inner += '</div>';
+        row.innerHTML = inner;
+        listEl.appendChild(row);
+      });
+
+      // Also refresh font files preview
+      previewFontFiles(fontFiles);
+    }
+
+    // ── Stats rendering ───────────────────────────────────
+    function renderStats(s) {
+      // Remove old stats if any
+      const old = document.getElementById('statsGrid');
+      if (old) old.remove();
+
+      const hint = document.getElementById('mainHint');
+      const grid = document.createElement('div');
+      grid.className = 'stats';
+      grid.id = 'statsGrid';
+      grid.innerHTML =
+        statCell(s.frames, 'Frames') +
+        statCell(s.texts, 'Text Layers') +
+        statCell(s.images, 'Images') +
+        statCell(s.colors, 'Color Vars') +
+        statCell(s.textStyles, 'Text Styles') +
+        statCell(s.fontsMissing || 0, 'Missing Fonts', s.fontsMissing > 0 ? '#f59e0b' : undefined);
+      hint.parentNode.insertBefore(grid, hint);
+    }
+
+    function statCell(value, label, color) {
+      const c = color || 'var(--figma-color-text-brand, #0d99ff)';
+      return `<div class="stat">
+        <div class="value" style="color:${c}">${value}</div>
+        <div class="label">${label}</div>
+      </div>`;
+    }
+
+    function showStatus(type, text) {
+      status.className = 'status visible ' + type;
+      status.textContent = text;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+
+  <!-- JSZip for ZIP creation (optional, graceful fallback if blocked) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+    crossorigin="anonymous"
+    onerror="console.warn('JSZip not loaded — fonts will download individually')">
+  </script>
+</body>
+</html>
