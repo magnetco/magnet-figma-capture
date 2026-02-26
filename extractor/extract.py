@@ -176,24 +176,11 @@ EXTRACTION_SCRIPT = """
                 gridTemplateRows: cs.gridTemplateRows,
             };
         } else if (display === 'block' || display === 'flow-root' || display === 'list-item') {
-            // Block elements with multiple children often act like vertical flex
-            const childEls = Array.from(el.children).filter(c => {
-                const ccs = window.getComputedStyle(c);
-                return ccs.display !== 'none' && ccs.position !== 'absolute' && ccs.position !== 'fixed';
-            });
-            if (childEls.length > 1) {
-                layoutMode = 'VERTICAL';
-                autoLayoutProps = {
-                    direction: 'VERTICAL',
-                    justifyContent: 'flex-start',
-                    alignItems: 'stretch',
-                    flexWrap: 'nowrap',
-                    gap: 0,
-                    rowGap: 0,
-                    columnGap: 0,
-                    inferred: true,
-                };
-            }
+            // Block elements: do NOT infer auto-layout.
+            // CSS block flow does not equal Figma auto-layout. Margins collapse,
+            // children can overlap via relative positioning, floats, etc.
+            // These are handled by absolute positioning in the plugin.
+            layoutMode = 'NONE';
         }
 
         // --- Box model ---
@@ -826,12 +813,10 @@ if __name__ == "__main__":
                 count_nodes(c)
     count_nodes(result.get("tree"))
 
-    font_files = result.get("fontFiles", [])
-    fonts_ok = sum(1 for f in font_files if f.get("data"))
-    fonts_fail = len(font_files) - fonts_ok
-
-    print(f"\n  Extracted {node_count} nodes")
-    print(f"  {len(result.get('colors', []))} unique colors found")
-    print(f"  {len(result.get('fonts', []))} unique font styles found")
-    print(f"  {len(font_files)} font variants found — {fonts_ok} downloaded, {fonts_fail} failed")
+    font_count = len(result.get("fontFiles", []))
+    print(f"\n✓ Extraction complete")
+    print(f"  Nodes: {node_count}")
+    print(f"  Colors: {len(result.get('colors', []))}")
+    print(f"  Font variants: {len(result.get('fonts', []))}")
+    print(f"  Font files downloaded: {font_count}")
     print(f"  Output: {out_path}")
