@@ -57,7 +57,7 @@ figma.ui.onmessage = async (msg) => {
 
       // Step 5: Build layers
       figma.ui.postMessage({ type: 'status', text: 'Building layers...' });
-      const rootNode = await buildNode(data.tree, null);
+      const rootNode = await buildNode(data.tree, null, 0);
       if (rootNode) {
         rootNode.name = data.title || data.url || 'Imported Page';
         figma.currentPage.appendChild(rootNode);
@@ -323,8 +323,14 @@ function weightToStyle(w) {
 }
 
 // ─── Node Builder ────────────────────────────────────────────
-async function buildNode(data, parent) {
+async function buildNode(data, parent, depth) {
   if (!data) return null;
+
+  // BUG 3: Skip fixed-position overlays (cookie banners, modals) at the top
+  // level — depth 0 is the root frame itself, depth 1 are direct body children.
+  if (data.position === 'fixed' && depth <= 1) {
+    return null;
+  }
 
   switch (data.type) {
     case 'TEXT':
@@ -335,12 +341,12 @@ async function buildNode(data, parent) {
       return buildVectorNode(data);
     case 'FRAME':
     default:
-      return await buildFrameNode(data);
+      return await buildFrameNode(data, depth);
   }
 }
 
 // ─── Frame Node ──────────────────────────────────────────────
-async function buildFrameNode(data) {
+async function buildFrameNode(data, depth) {
   const frame = figma.createFrame();
   stats.frames++;
 
@@ -412,28 +418,35 @@ async function buildFrameNode(data) {
   frame.clipsContent = !!data.clipContent;
 
   // ─── Auto Layout ───────────────────────────────────────
-  if (data.layoutMode !== 'NONE' && data.autoLayout) {
+  // Only apply auto-layout for true flex rows/columns.
+  // NONE and GRID layouts use absolute child positioning instead.
+  const isAutoLayout = (
+    data.layoutMode !== 'NONE' &&
+    data.layoutMode !== 'GRID' &&
+    data.autoLayout &&
+    (data.autoLayout.direction === 'HORIZONTAL' || data.autoLayout.direction === 'VERTICAL')
+  );
+
+  if (isAutoLayout) {
     const al = data.autoLayout;
 
-    if (al.direction === 'HORIZONTAL' || al.direction === 'VERTICAL') {
-      frame.layoutMode = al.direction;
-      frame.itemSpacing = al.gap || 0;
+    frame.layoutMode = al.direction;
+    frame.itemSpacing = al.gap || 0;
 
-      if (data.padding) {
-        frame.paddingTop = Math.round(data.padding.top);
-        frame.paddingRight = Math.round(data.padding.right);
-        frame.paddingBottom = Math.round(data.padding.bottom);
-        frame.paddingLeft = Math.round(data.padding.left);
-      }
+    if (data.padding) {
+      frame.paddingTop = Math.round(data.padding.top);
+      frame.paddingRight = Math.round(data.padding.right);
+      frame.paddingBottom = Math.round(data.padding.bottom);
+      frame.paddingLeft = Math.round(data.padding.left);
+    }
 
-      frame.primaryAxisAlignItems = mapJustifyContent(al.justifyContent);
-      frame.counterAxisAlignItems = mapAlignItems(al.alignItems);
-      frame.primaryAxisSizingMode = 'FIXED';
-      frame.counterAxisSizingMode = 'FIXED';
+    frame.primaryAxisAlignItems = mapJustifyContent(al.justifyContent);
+    frame.counterAxisAlignItems = mapAlignItems(al.alignItems);
+    frame.primaryAxisSizingMode = 'FIXED';
+    frame.counterAxisSizingMode = 'FIXED';
 
-      if (al.flexWrap === 'wrap' || al.flexWrap === 'wrap-reverse') {
-        frame.layoutWrap = 'WRAP';
-      }
+    if (al.flexWrap === 'wrap' || al.flexWrap === 'wrap-reverse') {
+      frame.layoutWrap = 'WRAP';
     }
   }
 
@@ -456,20 +469,30 @@ async function buildFrameNode(data) {
   // ─── Build Children ────────────────────────────────────
   if (data.children && data.children.length > 0) {
     for (const childData of data.children) {
-      const childNode = await buildNode(childData, frame);
+      const childNode = await buildNode(childData, frame, (depth || 0) + 1);
       if (childNode) {
         frame.appendChild(childNode);
 
-        if (frame.layoutMode !== 'NONE') {
-          if (childData.flexGrow > 0) {
-            childNode.layoutGrow = 1;
-          }
-          if (childData.alignSelf === 'stretch') {
-            childNode.layoutAlign = 'STRETCH';
-          }
+        if (isAutoLayout) {
+          // Auto-layout parent: handle absolute/fixed children and normal flow children
           if (childData.position === 'absolute' || childData.position === 'fixed') {
+            // BUG 2: Mark as absolute AND set x,y relative to parent
             childNode.layoutPositioning = 'ABSOLUTE';
+            childNode.x = Math.round(childData.x - data.x);
+            childNode.y = Math.round(childData.y - data.y);
+          } else {
+            // Normal auto-layout flow child
+            if (childData.flexGrow > 0) {
+              childNode.layoutGrow = 1;
+            }
+            if (childData.alignSelf === 'stretch') {
+              childNode.layoutAlign = 'STRETCH';
+            }
           }
+        } else {
+          // BUG 1 & GRID: NONE/GRID layout — position every child relative to parent
+          childNode.x = Math.round(childData.x - data.x);
+          childNode.y = Math.round(childData.y - data.y);
         }
       }
     }
