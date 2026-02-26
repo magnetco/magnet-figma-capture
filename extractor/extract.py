@@ -708,7 +708,15 @@ def extract_dom(
         page = context.new_page()
 
         print(f"  Loading {url} at {width}px...")
-        page.goto(url, wait_until="networkidle", timeout=30000)
+        try:
+            page.goto(url, wait_until="networkidle", timeout=60000)
+        except Exception:
+            print("  networkidle timed out — falling back to domcontentloaded...")
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            except Exception:
+                print("  domcontentloaded also timed out — using load event...")
+                page.goto(url, wait_until="load", timeout=90000)
         page.wait_for_timeout(int(wait_seconds * 1000))
 
         # Scroll to trigger lazy loading
@@ -818,12 +826,12 @@ if __name__ == "__main__":
                 count_nodes(c)
     count_nodes(result.get("tree"))
 
-    font_count = len(result.get("fontFiles", []))
-    font_with_data = sum(1 for f in result.get("fontFiles", []) if f.get("data"))
+    font_files = result.get("fontFiles", [])
+    fonts_ok = sum(1 for f in font_files if f.get("data"))
+    fonts_fail = len(font_files) - fonts_ok
 
-    print(f"\n✓ Extraction complete")
+    print(f"\n  Extracted {node_count} nodes")
+    print(f"  {len(result.get('colors', []))} unique colors found")
+    print(f"  {len(result.get('fonts', []))} unique font styles found")
+    print(f"  {len(font_files)} font variants found — {fonts_ok} downloaded, {fonts_fail} failed")
     print(f"  Output: {out_path}")
-    print(f"  Nodes: {node_count}")
-    print(f"  Colors found: {len(result.get('colors', []))}")
-    print(f"  Font variants: {len(result.get('fonts', []))}")
-    print(f"  Font files embedded: {font_with_data}/{font_count}")
