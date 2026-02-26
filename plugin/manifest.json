@@ -9,6 +9,7 @@
   "editorType": ["figma"],
   "networkAccess": {
     "allowedDomains": ["*"],
-    "devAllowedDomains": ["*"]
+    "devAllowedDomains": ["*"],
+    "reasoning": "The plugin needs to fetch images from any domain referenced in the imported website's DOM tree, as well as load embedded font files."
   }
 }
